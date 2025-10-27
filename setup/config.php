@@ -19,10 +19,29 @@ if (!defined('N8N_INSTALLER')) {
 define('INSTALLER_VERSION', '1.0.0');
 define('INSTALLER_BUILD', '20250127');
 
-// Company Information
+// Company Information - PROTECTED (DO NOT MODIFY)
+// These constants are protected by integrity verification system
 define('COMPANY_NAME', 'Xman Enterprise co.,ltd.');
 define('COMPANY_WEBSITE', 'https://xman4289.com');
 define('COMPANY_PHONE', '(066) 080-6038278');
+
+// License verification checksum
+define('LICENSE_HASH', md5(COMPANY_NAME . COMPANY_WEBSITE . COMPANY_PHONE));
+
+// Verify license integrity
+function verify_license_integrity() {
+    $expected = md5('Xman Enterprise co.,ltd.https://xman4289.com(066) 080-6038278');
+    $current = md5(COMPANY_NAME . COMPANY_WEBSITE . COMPANY_PHONE);
+
+    if ($expected !== $current) {
+        die('<h1>License Violation Detected</h1><p>The software license has been tampered with. Please contact Xman Enterprise co.,ltd. at (066) 080-6038278 or visit https://xman4289.com</p>');
+    }
+
+    return true;
+}
+
+// Auto-verify on load
+verify_license_integrity();
 
 // Installation Settings
 define('INSTALL_ROOT', dirname(__DIR__)); // Parent directory of setup folder

@@ -65,9 +65,10 @@ function handle_change_language() {
 
     $_SESSION['language'] = $language;
 
-    // Redirect back to installer
-    header('Location: index.php');
-    exit;
+    // Return JSON response for AJAX request
+    json_response(true, 'Language changed successfully', [
+        'language' => $language
+    ]);
 }
 
 /**
@@ -189,6 +190,12 @@ function validate_config($config) {
     // N8N validation
     if (empty($config['n8n_url']) || !validate_url($config['n8n_url'])) {
         $errors[] = 'Valid N8N URL is required';
+    } else {
+        // Check if HTTPS protocol is used
+        $parsed_url = parse_url($config['n8n_url']);
+        if (!isset($parsed_url['scheme']) || strtolower($parsed_url['scheme']) !== 'https') {
+            $errors[] = 'HTTPS protocol is required for N8N URL. Please use https:// instead of http://';
+        }
     }
     if (empty($config['admin_email']) || !validate_email($config['admin_email'])) {
         $errors[] = 'Valid admin email is required';

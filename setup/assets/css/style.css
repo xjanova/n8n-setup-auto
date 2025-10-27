@@ -625,11 +625,26 @@ body::before {
 }
 
 /* Footer */
+/* Protected Footer - DO NOT MODIFY */
 .installer-footer {
     text-align: center;
     padding: 20px;
     color: #6b7280;
     font-size: 0.9rem;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative;
+    z-index: 999;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.03) 0%, rgba(139, 92, 246, 0.03) 100%);
+    border-top: 2px solid rgba(99, 102, 241, 0.1);
+    margin-top: 30px;
+}
+
+.installer-footer * {
+    display: inline !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .installer-footer a {
@@ -637,11 +652,47 @@ body::before {
     text-decoration: none;
     font-weight: 600;
     transition: var(--transition);
+    pointer-events: auto !important;
 }
 
 .installer-footer a:hover {
     color: var(--primary-dark);
     text-decoration: underline;
+}
+
+/* Watermark protection */
+.xman-watermark {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+#xman-footer-container {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Anti-tamper CSS */
+#xman-footer-container::before {
+    content: '';
+    display: block;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+    margin-bottom: 15px;
+}
+
+#xman-footer-container::after {
+    content: '🔒 Licensed to Xman Enterprise co.,ltd.';
+    display: block;
+    font-size: 0.65rem;
+    color: #d1d5db;
+    margin-top: 10px;
+    opacity: 0.5;
 }
 
 /* Loading Spinner */

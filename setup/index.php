@@ -224,8 +224,12 @@ $current_lang = $_SESSION['language'] ?? DEFAULT_LANGUAGE;
                     <div class="form-group">
                         <label for="n8n_url"><?php echo __('n8n_url'); ?> <span class="required">*</span></label>
                         <input type="text" id="n8n_url" name="n8n_url"
-                               value="<?php echo get_base_url() . '/../n8n'; ?>" required>
-                        <span class="hint"><?php echo __('n8n_url'); ?></span>
+                               value="<?php echo 'https://' . $_SERVER['HTTP_HOST'] . '/n8n'; ?>"
+                               placeholder="https://yourdomain.com/n8n"
+                               required>
+                        <span class="hint" style="color: #ef4444; font-weight: 600;">
+                            🔒 <?php echo $current_lang === 'th' ? 'จำเป็นต้องใช้ HTTPS เท่านั้น (ขึ้นต้นด้วย https://)' : 'HTTPS is required (must start with https://)'; ?>
+                        </span>
                     </div>
 
                     <div class="form-group">
@@ -284,7 +288,7 @@ $current_lang = $_SESSION['language'] ?? DEFAULT_LANGUAGE;
 
                 <div class="btn-group">
                     <button type="button" class="btn btn-secondary btn-back">← <?php echo __('back'); ?></button>
-                    <button type="button" id="install-btn" class="btn btn-success btn-next">
+                    <button type="button" id="install-btn" class="btn btn-success">
                         ⚡ <?php echo __('install'); ?>
                     </button>
                 </div>
@@ -382,22 +386,11 @@ $current_lang = $_SESSION['language'] ?? DEFAULT_LANGUAGE;
             </div>
         </div>
 
-        <!-- Footer -->
-        <div class="installer-footer">
-            <p>
-                <strong><?php echo __('powered_by'); ?>:</strong>
-                <a href="<?php echo COMPANY_WEBSITE; ?>" target="_blank"><?php echo COMPANY_NAME; ?></a>
-            </p>
-            <p>
-                📞 <?php echo COMPANY_PHONE; ?> |
-                <?php echo __('version'); ?>: <?php echo INSTALLER_VERSION; ?> (Build <?php echo INSTALLER_BUILD; ?>)
-            </p>
-            <p style="margin-top: 10px; color: #9ca3af; font-size: 0.85rem;">
-                © <?php echo date('Y'); ?> <?php echo COMPANY_NAME; ?>. All rights reserved.
-            </p>
-        </div>
+        <!-- Footer - Protected Watermark -->
+        <div id="xman-footer-container" class="installer-footer"></div>
     </div>
 
     <script src="assets/js/installer.js"></script>
+    <script src="assets/js/watermark.js"></script>
 </body>
 </html>
