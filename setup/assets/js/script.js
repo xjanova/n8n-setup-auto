@@ -140,7 +140,7 @@ function validateHttps(url) {
     }
 }
 
-// Start installation
+// Start installation with real-time streaming
 async function startInstall() {
     // Validate N8N URL
     const n8nUrl = document.getElementById('n8n_url').value;
@@ -161,7 +161,6 @@ async function startInstall() {
     const n8nForm = new FormData(document.getElementById('n8n-form'));
 
     const formData = new FormData();
-    formData.append('action', 'install');
 
     // Add database data
     for (const [key, value] of dbForm.entries()) {
@@ -179,41 +178,86 @@ async function startInstall() {
     const logDiv = document.getElementById('install-log');
     logDiv.innerHTML = '';
 
-    function addLog(msg) {
+    // Hide loading spinner, we'll show real output
+    const loadingDiv = document.querySelector('.loading');
+    if (loadingDiv) {
+        loadingDiv.style.display = 'none';
+    }
+
+    function addLog(msg, type = 'info') {
         const div = document.createElement('div');
+        div.className = 'log-line log-' + type;
         div.textContent = msg;
         logDiv.appendChild(div);
         logDiv.scrollTop = logDiv.scrollHeight;
     }
 
+    // Use fetch with ReadableStream for real-time streaming
     try {
-        addLog('Starting installation...');
-
-        const response = await fetch('install.php', {
+        const response = await fetch('install-realtime.php', {
             method: 'POST',
             body: formData
         });
 
-        const result = await response.json();
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
 
-        if (result.success) {
-            if (result.logs) {
-                result.logs.forEach(log => addLog(log));
+        while (true) {
+            const {done, value} = await reader.read();
+
+            if (done) {
+                break;
             }
-            addLog('Installation completed successfully!');
 
-            // Show completion
-            document.getElementById('final-url').textContent = n8nUrl;
-            document.getElementById('final-email').textContent = n8nForm.get('admin_email');
+            // Decode the chunk and add to buffer
+            buffer += decoder.decode(value, {stream: true});
 
-            setTimeout(() => {
-                showStep(6);
-            }, 1000);
-        } else {
-            addLog('ERROR: ' + result.message);
+            // Process complete lines
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // Keep incomplete line in buffer
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const jsonStr = line.substring(6).trim();
+                        if (jsonStr) {
+                            const data = JSON.parse(jsonStr);
+
+                            // Check if installation is complete
+                            if (data.complete) {
+                                if (data.success) {
+                                    addLog('', 'success');
+                                    addLog('🎉 Ready to use N8N!', 'success');
+
+                                    // Show completion
+                                    document.getElementById('final-url').textContent = data.url;
+                                    document.getElementById('final-email').textContent = data.email;
+
+                                    setTimeout(() => {
+                                        showStep(6);
+                                    }, 2000);
+                                } else {
+                                    addLog('', 'error');
+                                    addLog('Installation failed. Please check the errors above.', 'error');
+                                }
+                                return; // Exit the function
+                            } else if (data.message) {
+                                // Regular log message
+                                const prefix = data.time ? '[' + data.time + '] ' : '';
+                                addLog(prefix + data.message, data.type);
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error parsing JSON:', e, 'Line:', line);
+                    }
+                }
+            }
         }
     } catch (error) {
-        addLog('ERROR: ' + error.message);
+        console.error('Fetch error:', error);
+        addLog('', 'error');
+        addLog('ERROR: ' + error.message, 'error');
     }
 }
 
