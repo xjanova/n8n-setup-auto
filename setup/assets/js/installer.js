@@ -64,15 +64,37 @@ class N8NInstaller {
         }
     }
 
-    changeLanguage(lang) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.innerHTML = `
-            <input type="hidden" name="action" value="change_language">
-            <input type="hidden" name="language" value="${lang}">
-        `;
-        document.body.appendChild(form);
-        form.submit();
+    async changeLanguage(lang) {
+        // Show loading indicator
+        const langSelector = document.getElementById('language');
+        if (langSelector) {
+            langSelector.disabled = true;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('action', 'change_language');
+            formData.append('language', lang);
+
+            const response = await fetch('install.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                // Reload page to apply language change
+                window.location.reload();
+            } else {
+                throw new Error('Failed to change language');
+            }
+        } catch (error) {
+            console.error('Language change error:', error);
+            if (langSelector) {
+                langSelector.disabled = false;
+            }
+            // Fallback: Try simple reload with query parameter
+            window.location.href = 'index.php?lang=' + lang;
+        }
     }
 
     nextStep() {
@@ -194,6 +216,7 @@ class N8NInstaller {
         const adminEmail = document.getElementById('admin_email')?.value;
         const adminPassword = document.getElementById('admin_password')?.value;
         const confirmPassword = document.getElementById('admin_password_confirm')?.value;
+        const encryptionKey = document.getElementById('encryption_key')?.value;
 
         if (!n8nUrl || !adminEmail || !adminPassword || !confirmPassword) {
             this.showAlert('error', 'Please fill in all required fields.');
@@ -207,6 +230,11 @@ class N8NInstaller {
 
         if (adminPassword.length < 8) {
             this.showAlert('error', 'Password must be at least 8 characters long.');
+            return false;
+        }
+
+        if (!encryptionKey || encryptionKey.length < 32) {
+            this.showAlert('error', 'Please generate an encryption key (minimum 32 characters).');
             return false;
         }
 
@@ -270,11 +298,31 @@ class N8NInstaller {
     }
 
     async startInstallation() {
-        const installBtn = document.getElementById('install-btn');
-        installBtn.disabled = true;
+        console.log('Starting installation...');
 
-        // Move to installation step
-        this.nextStep();
+        // Validate configuration first
+        if (!this.validateConfiguration()) {
+            console.log('Configuration validation failed');
+            return;
+        }
+
+        const installBtn = document.getElementById('install-btn');
+        if (!installBtn) {
+            console.error('Install button not found');
+            return;
+        }
+
+        installBtn.disabled = true;
+        console.log('Install button disabled');
+
+        // Manually move to installation step (step 5)
+        this.hideStep(this.currentStep);
+        this.currentStep = 5;
+        this.showStep(this.currentStep);
+        this.updateProgressLine();
+        this.scrollToTop();
+
+        console.log('Moved to installation step');
 
         // Collect all form data
         const formData = new FormData();
@@ -298,31 +346,53 @@ class N8NInstaller {
         formData.append('encryption_key', document.getElementById('encryption_key').value);
         formData.append('install_location', document.getElementById('install_location').value);
 
+        console.log('Form data collected, starting installation process');
+
         // Start installation process
         await this.performInstallation(formData);
     }
 
     async performInstallation(formData) {
+        console.log('performInstallation started');
+
         const steps = [
-            { id: 'download', duration: 5000 },
-            { id: 'extract', duration: 3000 },
+            { id: 'download', duration: 3000 },
+            { id: 'extract', duration: 2000 },
             { id: 'database', duration: 2000 },
             { id: 'config', duration: 2000 },
-            { id: 'dependencies', duration: 8000 },
-            { id: 'finalize', duration: 3000 }
+            { id: 'dependencies', duration: 5000 },
+            { id: 'finalize', duration: 2000 }
         ];
 
         let progress = 0;
         const progressBar = document.getElementById('install-progress-bar');
         const progressText = document.getElementById('install-progress-text');
 
+        if (!progressBar || !progressText) {
+            console.error('Progress elements not found');
+            this.showAlert('error', 'Installation interface elements not found');
+            return;
+        }
+
+        console.log('Starting installation steps simulation');
+
         for (let i = 0; i < steps.length; i++) {
             const step = steps[i];
             const stepElement = document.getElementById(`install-step-${step.id}`);
 
+            if (!stepElement) {
+                console.error(`Step element not found: install-step-${step.id}`);
+                continue;
+            }
+
+            console.log(`Starting step: ${step.id}`);
+
             // Mark as active
             stepElement.classList.add('active');
-            stepElement.querySelector('.installation-step-icon').innerHTML = '<div class="spinner"></div>';
+            const iconElement = stepElement.querySelector('.installation-step-icon');
+            if (iconElement) {
+                iconElement.innerHTML = '<div class="spinner"></div>';
+            }
 
             // Simulate progress
             const increment = 100 / steps.length;
@@ -331,21 +401,33 @@ class N8NInstaller {
             // Mark as completed
             stepElement.classList.remove('active');
             stepElement.classList.add('completed');
-            stepElement.querySelector('.installation-step-icon').innerHTML = '<div class="check">✓</div>';
+            if (iconElement) {
+                iconElement.innerHTML = '<div class="check">✓</div>';
+            }
 
             progress += increment;
             progressBar.style.width = `${progress}%`;
             progressText.textContent = `${Math.round(progress)}%`;
+
+            console.log(`Completed step: ${step.id}, progress: ${Math.round(progress)}%`);
         }
 
-        // Installation complete
+        // Installation complete - call backend
+        console.log('Calling backend installation API');
         try {
             const response = await fetch('install.php', {
                 method: 'POST',
                 body: formData
             });
 
+            console.log('Backend response received:', response.status);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const result = await response.json();
+            console.log('Installation result:', result);
 
             if (result.success) {
                 // Save installation info
@@ -353,14 +435,31 @@ class N8NInstaller {
                 sessionStorage.setItem('n8n_url', document.getElementById('n8n_url').value);
                 sessionStorage.setItem('admin_email', document.getElementById('admin_email').value);
 
-                // Move to complete step
+                console.log('Installation successful, moving to complete step');
+
+                // Move to complete step manually
                 setTimeout(() => {
-                    this.nextStep();
+                    this.hideStep(this.currentStep);
+                    this.currentStep = 6;
+                    this.showStep(this.currentStep);
+                    this.updateProgressLine();
+
+                    // Update complete page info
+                    const completeUrl = document.getElementById('complete-url');
+                    const completeEmail = document.getElementById('complete-email');
+                    if (completeUrl) {
+                        completeUrl.textContent = sessionStorage.getItem('n8n_url');
+                    }
+                    if (completeEmail) {
+                        completeEmail.textContent = sessionStorage.getItem('admin_email');
+                    }
                 }, 1000);
             } else {
+                console.error('Installation failed:', result.message);
                 this.showAlert('error', result.message || 'Installation failed.');
             }
         } catch (error) {
+            console.error('Installation error:', error);
             this.showAlert('error', 'Installation error: ' + error.message);
         }
     }

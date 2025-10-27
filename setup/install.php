@@ -65,9 +65,10 @@ function handle_change_language() {
 
     $_SESSION['language'] = $language;
 
-    // Redirect back to installer
-    header('Location: index.php');
-    exit;
+    // Return JSON response for AJAX request
+    json_response(true, 'Language changed successfully', [
+        'language' => $language
+    ]);
 }
 
 /**

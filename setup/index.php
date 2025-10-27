@@ -284,7 +284,7 @@ $current_lang = $_SESSION['language'] ?? DEFAULT_LANGUAGE;
 
                 <div class="btn-group">
                     <button type="button" class="btn btn-secondary btn-back">← <?php echo __('back'); ?></button>
-                    <button type="button" id="install-btn" class="btn btn-success btn-next">
+                    <button type="button" id="install-btn" class="btn btn-success">
                         ⚡ <?php echo __('install'); ?>
                     </button>
                 </div>
