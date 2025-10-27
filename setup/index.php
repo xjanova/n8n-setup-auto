@@ -1,6 +1,28 @@
 <?php
 require_once 'config.php';
 
+// Check if any shell execution function is available
+$shell_available = false;
+
+// Check for proc_open (best option - supports real-time output)
+if (function_exists('proc_open')) {
+    $shell_available = true;
+}
+// Check for shell_exec
+elseif (function_exists('shell_exec')) {
+    $shell_available = true;
+}
+// Check for passthru
+elseif (function_exists('passthru')) {
+    $shell_available = true;
+}
+
+// If no shell function available, redirect to manual installation
+if (!$shell_available) {
+    header('Location: manual-install.php');
+    exit;
+}
+
 // Handle language change
 if (isset($_GET['lang']) && in_array($_GET['lang'], ['th', 'en'])) {
     $_SESSION['lang'] = $_GET['lang'];

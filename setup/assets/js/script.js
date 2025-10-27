@@ -222,9 +222,9 @@ async function startInstall() {
         logDiv.scrollTop = logDiv.scrollHeight;
     }
 
-    // Use fetch with ReadableStream for real-time streaming
+    // Use install-direct.php which generates .sh script and runs with proc_open/shell_exec
     try {
-        const response = await fetch('install-realtime.php', {
+        const response = await fetch('install-direct.php', {
             method: 'POST',
             body: formData
         });
