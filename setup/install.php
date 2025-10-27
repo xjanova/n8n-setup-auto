@@ -1,229 +1,216 @@
 <?php
-/**
- * N8N Installation Processor
- * Handles all AJAX requests and installation logic
- */
+require_once 'config.php';
 
-define('N8N_INSTALLER', true);
-
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/includes/functions.php';
-require_once __DIR__ . '/includes/requirements.php';
-require_once __DIR__ . '/includes/database.php';
-require_once __DIR__ . '/includes/n8n-installer.php';
-
-// Load language
-$lang = load_language();
-
-// Handle POST requests only
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    json_response(false, 'Invalid request method');
-}
+header('Content-Type: application/json');
 
 // Get action
-$action = sanitize_input($_POST['action'] ?? '');
+$action = $_POST['action'] ?? '';
 
-if (empty($action)) {
-    json_response(false, 'No action specified');
-}
-
-// Route to appropriate handler
+// Handle actions
 switch ($action) {
-    case 'change_language':
-        handle_change_language();
-        break;
-
     case 'check_requirements':
-        handle_check_requirements();
+        checkRequirements();
         break;
 
     case 'test_database':
-        handle_test_database();
+        testDatabase();
         break;
 
     case 'install':
-        handle_installation();
-        break;
-
-    case 'cleanup':
-        handle_cleanup();
+        performInstall();
         break;
 
     default:
-        json_response(false, 'Invalid action');
+        echo json_encode(['success' => false, 'message' => 'Invalid action']);
 }
 
-/**
- * Handle language change
- */
-function handle_change_language() {
-    $language = sanitize_input($_POST['language'] ?? DEFAULT_LANGUAGE);
+// Check system requirements
+function checkRequirements() {
+    $requirements = [];
 
-    if (!in_array($language, ['th', 'en'])) {
-        $language = DEFAULT_LANGUAGE;
+    // HTTPS Check
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+                || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+
+    $requirements['https'] = [
+        'name' => 'HTTPS Protocol',
+        'status' => $isHttps ? 'pass' : 'fail',
+        'message' => $isHttps ? 'Secure HTTPS connection' : 'HTTPS required for N8N'
+    ];
+
+    // PHP Version
+    $phpVersion = phpversion();
+    $phpOk = version_compare($phpVersion, '7.4.0', '>=');
+
+    $requirements['php'] = [
+        'name' => 'PHP Version',
+        'status' => $phpOk ? 'pass' : 'fail',
+        'message' => "Current: {$phpVersion} (Required: 7.4+)"
+    ];
+
+    // Required Extensions
+    $extensions = ['curl', 'mbstring', 'pdo', 'zip', 'json'];
+    foreach ($extensions as $ext) {
+        $loaded = extension_loaded($ext);
+        $requirements["ext_{$ext}"] = [
+            'name' => "PHP Extension: {$ext}",
+            'status' => $loaded ? 'pass' : 'fail',
+            'message' => $loaded ? 'Installed' : 'Not installed'
+        ];
     }
 
-    $_SESSION['language'] = $language;
+    // Write Permission
+    $installRoot = dirname(__DIR__);
+    $writable = is_writable($installRoot);
 
-    // Return JSON response for AJAX request
-    json_response(true, 'Language changed successfully', [
-        'language' => $language
+    $requirements['writable'] = [
+        'name' => 'Write Permission',
+        'status' => $writable ? 'pass' : 'fail',
+        'message' => $writable ? 'Directory is writable' : 'Cannot write to directory'
+    ];
+
+    echo json_encode([
+        'success' => true,
+        'requirements' => $requirements
     ]);
 }
 
-/**
- * Handle requirements check
- */
-function handle_check_requirements() {
-    $checker = new RequirementsChecker();
-    $requirements = $checker->get_requirements();
+// Test database connection
+function testDatabase() {
+    $dbType = $_POST['db_type'] ?? 'mysql';
+    $dbHost = $_POST['db_host'] ?? 'localhost';
+    $dbPort = $_POST['db_port'] ?? '3306';
+    $dbName = $_POST['db_name'] ?? '';
+    $dbUser = $_POST['db_user'] ?? '';
+    $dbPass = $_POST['db_pass'] ?? '';
 
-    json_response(true, 'Requirements checked', [
-        'requirements' => $requirements,
-        'all_passed' => $checker->all_passed()
-    ]);
-}
-
-/**
- * Handle database connection test
- */
-function handle_test_database() {
-    global $lang;
-
-    $config = [
-        'type' => sanitize_input($_POST['db_type'] ?? 'mysql'),
-        'host' => sanitize_input($_POST['db_host'] ?? 'localhost'),
-        'port' => (int) ($_POST['db_port'] ?? 3306),
-        'database' => sanitize_input($_POST['db_name'] ?? ''),
-        'username' => sanitize_input($_POST['db_user'] ?? ''),
-        'password' => $_POST['db_password'] ?? '', // Don't sanitize password
-        'prefix' => sanitize_input($_POST['db_prefix'] ?? 'n8n_')
-    ];
-
-    // Validate required fields
-    if (empty($config['host']) || empty($config['database']) || empty($config['username'])) {
-        json_response(false, $lang['error_database'] ?? 'Missing required fields');
-    }
-
-    $db = new DatabaseHandler($config);
-    $result = $db->test_connection();
-
-    if ($result['success']) {
-        // Store config in session for later use
-        $_SESSION['db_config'] = $config;
-        json_response(true, $lang['database_success'] ?? 'Connection successful');
-    } else {
-        json_response(false, $result['message']);
-    }
-}
-
-/**
- * Handle installation
- */
-function handle_installation() {
-    global $lang;
-
-    // Collect all configuration
-    $config = [
-        // Database settings
-        'db_type' => sanitize_input($_POST['db_type'] ?? 'mysql'),
-        'db_host' => sanitize_input($_POST['db_host'] ?? 'localhost'),
-        'db_port' => (int) ($_POST['db_port'] ?? 3306),
-        'db_name' => sanitize_input($_POST['db_name'] ?? ''),
-        'db_user' => sanitize_input($_POST['db_user'] ?? ''),
-        'db_password' => $_POST['db_password'] ?? '',
-        'db_prefix' => sanitize_input($_POST['db_prefix'] ?? 'n8n_'),
-
-        // N8N settings
-        'n8n_url' => sanitize_input($_POST['n8n_url'] ?? ''),
-        'n8n_port' => (int) ($_POST['n8n_port'] ?? 5678),
-        'admin_email' => sanitize_input($_POST['admin_email'] ?? ''),
-        'admin_password' => $_POST['admin_password'] ?? '',
-        'timezone' => sanitize_input($_POST['timezone'] ?? 'Asia/Bangkok'),
-        'encryption_key' => sanitize_input($_POST['encryption_key'] ?? ''),
-        'install_location' => sanitize_input($_POST['install_location'] ?? INSTALL_ROOT)
-    ];
-
-    // Validate configuration
-    $validation_errors = validate_config($config);
-    if (!empty($validation_errors)) {
-        json_response(false, implode(', ', $validation_errors));
-    }
-
-    // Create installer instance
-    $installer = new N8NInstaller($config['install_location']);
-    $installer->set_config($config);
-
-    // Perform installation
-    $result = $installer->install();
-
-    if ($result['success']) {
-        // Store installation info in session
-        $_SESSION['install_info'] = $installer->get_install_info();
-        $_SESSION['install_complete'] = true;
-
-        json_response(true, $lang['success_installation'] ?? 'Installation completed successfully', [
-            'install_info' => $installer->get_install_info()
-        ]);
-    } else {
-        json_response(false, $result['message']);
-    }
-}
-
-/**
- * Validate configuration
- */
-function validate_config($config) {
-    $errors = [];
-
-    // Database validation
-    if (empty($config['db_host'])) {
-        $errors[] = 'Database host is required';
-    }
-    if (empty($config['db_name'])) {
-        $errors[] = 'Database name is required';
-    }
-    if (empty($config['db_user'])) {
-        $errors[] = 'Database user is required';
-    }
-
-    // N8N validation
-    if (empty($config['n8n_url']) || !validate_url($config['n8n_url'])) {
-        $errors[] = 'Valid N8N URL is required';
-    } else {
-        // Check if HTTPS protocol is used
-        $parsed_url = parse_url($config['n8n_url']);
-        if (!isset($parsed_url['scheme']) || strtolower($parsed_url['scheme']) !== 'https') {
-            $errors[] = 'HTTPS protocol is required for N8N URL. Please use https:// instead of http://';
+    try {
+        if ($dbType === 'sqlite') {
+            $pdo = new PDO("sqlite:" . INSTALL_ROOT . "/n8n.db");
+            echo json_encode(['success' => true, 'message' => 'SQLite connection successful']);
+            return;
         }
-    }
-    if (empty($config['admin_email']) || !validate_email($config['admin_email'])) {
-        $errors[] = 'Valid admin email is required';
-    }
-    if (empty($config['admin_password']) || strlen($config['admin_password']) < 8) {
-        $errors[] = 'Admin password must be at least 8 characters';
-    }
-    if (empty($config['encryption_key']) || strlen($config['encryption_key']) < 32) {
-        $errors[] = 'Encryption key must be at least 32 characters';
-    }
 
-    return $errors;
+        $dsn = '';
+        if ($dbType === 'mysql') {
+            $dsn = "mysql:host={$dbHost};port={$dbPort};dbname={$dbName}";
+        } elseif ($dbType === 'postgres') {
+            $dsn = "pgsql:host={$dbHost};port={$dbPort};dbname={$dbName}";
+        }
+
+        $pdo = new PDO($dsn, $dbUser, $dbPass);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        echo json_encode(['success' => true, 'message' => 'Database connection successful']);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => 'Connection failed: ' . $e->getMessage()]);
+    }
 }
 
-/**
- * Handle cleanup
- */
-function handle_cleanup() {
-    global $lang;
+// Perform installation
+function performInstall() {
+    $logs = [];
 
-    $result = N8NInstaller::cleanup();
+    try {
+        // Get form data
+        $dbType = $_POST['db_type'] ?? 'mysql';
+        $n8nUrl = $_POST['n8n_url'] ?? '';
+        $adminEmail = $_POST['admin_email'] ?? '';
+        $adminPass = $_POST['admin_pass'] ?? '';
+        $encryptionKey = $_POST['encryption_key'] ?? '';
 
-    if ($result['success']) {
-        // Clear session
-        session_destroy();
+        // Validate
+        if (empty($n8nUrl) || empty($adminEmail) || empty($adminPass) || empty($encryptionKey)) {
+            throw new Exception('Missing required fields');
+        }
 
-        json_response(true, $lang['success_cleanup'] ?? 'Installation files removed successfully');
-    } else {
-        json_response(false, $result['message']);
+        // Validate HTTPS
+        $parsed = parse_url($n8nUrl);
+        if (!isset($parsed['scheme']) || strtolower($parsed['scheme']) !== 'https') {
+            throw new Exception('N8N URL must use HTTPS protocol');
+        }
+
+        // Validate encryption key
+        if (strlen($encryptionKey) < 32) {
+            throw new Exception('Encryption key must be at least 32 characters');
+        }
+
+        $logs[] = '✓ Configuration validated';
+
+        // Create .env file
+        $envContent = "N8N_BASIC_AUTH_ACTIVE=true\n";
+        $envContent .= "N8N_BASIC_AUTH_USER=" . $adminEmail . "\n";
+        $envContent .= "N8N_BASIC_AUTH_PASSWORD=" . $adminPass . "\n";
+        $envContent .= "N8N_ENCRYPTION_KEY=" . $encryptionKey . "\n";
+        $envContent .= "N8N_HOST=" . $n8nUrl . "\n";
+        $envContent .= "N8N_PROTOCOL=https\n";
+        $envContent .= "N8N_PORT=5678\n";
+
+        // Database config
+        if ($dbType === 'sqlite') {
+            $envContent .= "DB_TYPE=sqlite\n";
+            $envContent .= "DB_SQLITE_DATABASE=" . INSTALL_ROOT . "/n8n.db\n";
+        } elseif ($dbType === 'mysql') {
+            $envContent .= "DB_TYPE=mysqldb\n";
+            $envContent .= "DB_MYSQLDB_HOST=" . ($_POST['db_host'] ?? 'localhost') . "\n";
+            $envContent .= "DB_MYSQLDB_PORT=" . ($_POST['db_port'] ?? '3306') . "\n";
+            $envContent .= "DB_MYSQLDB_DATABASE=" . ($_POST['db_name'] ?? '') . "\n";
+            $envContent .= "DB_MYSQLDB_USER=" . ($_POST['db_user'] ?? '') . "\n";
+            $envContent .= "DB_MYSQLDB_PASSWORD=" . ($_POST['db_pass'] ?? '') . "\n";
+        } elseif ($dbType === 'postgres') {
+            $envContent .= "DB_TYPE=postgresdb\n";
+            $envContent .= "DB_POSTGRESDB_HOST=" . ($_POST['db_host'] ?? 'localhost') . "\n";
+            $envContent .= "DB_POSTGRESDB_PORT=" . ($_POST['db_port'] ?? '5432') . "\n";
+            $envContent .= "DB_POSTGRESDB_DATABASE=" . ($_POST['db_name'] ?? '') . "\n";
+            $envContent .= "DB_POSTGRESDB_USER=" . ($_POST['db_user'] ?? '') . "\n";
+            $envContent .= "DB_POSTGRESDB_PASSWORD=" . ($_POST['db_pass'] ?? '') . "\n";
+        }
+
+        // Create n8n directory
+        $n8nDir = INSTALL_ROOT . '/n8n';
+        if (!is_dir($n8nDir)) {
+            mkdir($n8nDir, 0755, true);
+            $logs[] = '✓ Created N8N directory';
+        }
+
+        // Write .env file
+        $envFile = $n8nDir . '/.env';
+        if (file_put_contents($envFile, $envContent)) {
+            $logs[] = '✓ Created .env configuration file';
+        } else {
+            throw new Exception('Failed to create .env file');
+        }
+
+        // Create installation info
+        $info = [
+            'installed_at' => date('Y-m-d H:i:s'),
+            'version' => VERSION,
+            'build' => BUILD,
+            'url' => $n8nUrl,
+            'admin_email' => $adminEmail,
+            'company' => COMPANY_NAME
+        ];
+
+        file_put_contents($n8nDir . '/install-info.json', json_encode($info, JSON_PRETTY_PRINT));
+        $logs[] = '✓ Created installation info';
+
+        // Mark as complete
+        $_SESSION['install_complete'] = true;
+        $logs[] = '✓ Installation completed successfully';
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Installation completed',
+            'logs' => $logs
+        ]);
+
+    } catch (Exception $e) {
+        $logs[] = '✗ Error: ' . $e->getMessage();
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage(),
+            'logs' => $logs
+        ]);
     }
 }
