@@ -1,27 +1,39 @@
 <?php
 require_once 'config.php';
 
+// Disable all output buffering and error display
+while (ob_get_level()) {
+    ob_end_clean();
+}
+ini_set('display_errors', 0);
+error_reporting(0);
+
+// Set JSON header
 header('Content-Type: application/json');
 
 // Get action
 $action = $_POST['action'] ?? '';
 
-// Handle actions
-switch ($action) {
-    case 'check_requirements':
-        checkRequirements();
-        break;
+try {
+    // Handle actions
+    switch ($action) {
+        case 'check_requirements':
+            checkRequirements();
+            break;
 
-    case 'test_database':
-        testDatabase();
-        break;
+        case 'test_database':
+            testDatabase();
+            break;
 
-    case 'install':
-        performInstall();
-        break;
+        case 'install':
+            performInstall();
+            break;
 
-    default:
-        echo json_encode(['success' => false, 'message' => 'Invalid action']);
+        default:
+            echo json_encode(['success' => false, 'message' => 'Invalid action']);
+    }
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
 
 // Check system requirements
@@ -61,12 +73,15 @@ function checkRequirements() {
     }
 
     // Node.js Check
-    exec('which node 2>&1', $nodeOutput, $nodeReturn);
+    $nodeOutput = [];
+    $nodeReturn = 0;
+    @exec('which node 2>&1', $nodeOutput, $nodeReturn);
     $nodeInstalled = ($nodeReturn === 0);
 
     $nodeVersion = '';
     if ($nodeInstalled) {
-        exec('node --version 2>&1', $nodeVerOutput);
+        $nodeVerOutput = [];
+        @exec('node --version 2>&1', $nodeVerOutput);
         $nodeVersion = trim($nodeVerOutput[0] ?? '');
     }
 
@@ -77,12 +92,15 @@ function checkRequirements() {
     ];
 
     // npm Check
-    exec('which npm 2>&1', $npmOutput, $npmReturn);
+    $npmOutput = [];
+    $npmReturn = 0;
+    @exec('which npm 2>&1', $npmOutput, $npmReturn);
     $npmInstalled = ($npmReturn === 0);
 
     $npmVersion = '';
     if ($npmInstalled) {
-        exec('npm --version 2>&1', $npmVerOutput);
+        $npmVerOutput = [];
+        @exec('npm --version 2>&1', $npmVerOutput);
         $npmVersion = trim($npmVerOutput[0] ?? '');
     }
 
@@ -102,10 +120,18 @@ function checkRequirements() {
         'message' => $writable ? 'Directory is writable' : 'Cannot write to directory'
     ];
 
-    echo json_encode([
+    $output = json_encode([
         'success' => true,
         'requirements' => $requirements
     ]);
+
+    if ($output === false) {
+        echo json_encode(['success' => false, 'message' => 'Failed to encode requirements']);
+        return;
+    }
+
+    echo $output;
+    exit;
 }
 
 // Test database connection
@@ -121,7 +147,7 @@ function testDatabase() {
         if ($dbType === 'sqlite') {
             $pdo = new PDO("sqlite:" . INSTALL_ROOT . "/n8n.db");
             echo json_encode(['success' => true, 'message' => 'SQLite connection successful']);
-            return;
+            exit;
         }
 
         $dsn = '';
@@ -135,8 +161,10 @@ function testDatabase() {
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         echo json_encode(['success' => true, 'message' => 'Database connection successful']);
+        exit;
     } catch (PDOException $e) {
         echo json_encode(['success' => false, 'message' => 'Connection failed: ' . $e->getMessage()]);
+        exit;
     }
 }
 

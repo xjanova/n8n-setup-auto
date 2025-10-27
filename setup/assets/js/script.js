@@ -58,7 +58,22 @@ async function checkRequirements() {
             body: 'action=check_requirements'
         });
 
-        const result = await response.json();
+        // Check if response is ok
+        if (!response.ok) {
+            throw new Error('HTTP error! status: ' + response.status);
+        }
+
+        // Get response text first
+        const text = await response.text();
+
+        // Try to parse as JSON
+        let result;
+        try {
+            result = JSON.parse(text);
+        } catch (e) {
+            console.error('Invalid JSON response:', text);
+            throw new Error('Server returned invalid response. Please check server logs.');
+        }
 
         if (result.success) {
             let html = '';
@@ -108,7 +123,22 @@ async function testDatabase() {
             body: formData
         });
 
-        const result = await response.json();
+        // Check if response is ok
+        if (!response.ok) {
+            throw new Error('HTTP error! status: ' + response.status);
+        }
+
+        // Get response text first
+        const text = await response.text();
+
+        // Try to parse as JSON
+        let result;
+        try {
+            result = JSON.parse(text);
+        } catch (e) {
+            console.error('Invalid JSON response:', text);
+            throw new Error('Server returned invalid response. Please check server logs.');
+        }
 
         if (result.success) {
             resultDiv.innerHTML = '<div class="alert alert-success">✓ ' + result.message + '</div>';
