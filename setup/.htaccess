@@ -1,0 +1,84 @@
+# N8N Web Installer - Apache Configuration
+# Xman Enterprise co.,ltd.
+# https://xman4289.com
+
+# Enable rewrite engine
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /setup/
+
+    # Prevent access to sensitive files
+    RewriteRule ^\.env$ - [F,L]
+    RewriteRule ^config\.php$ - [F,L]
+    RewriteRule ^includes/ - [F,L]
+    RewriteRule ^language/ - [F,L]
+    RewriteRule \.log$ - [F,L]
+
+    # Force HTTPS (optional - uncomment for production)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST%}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Deny access to sensitive files
+<FilesMatch "^(config\.php|\.env|.*\.log)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Deny access to directories
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+    # Prevent clickjacking
+    Header set X-Frame-Options "SAMEORIGIN"
+
+    # XSS protection
+    Header set X-XSS-Protection "1; mode=block"
+
+    # Content type sniffing prevention
+    Header set X-Content-Type-Options "nosniff"
+
+    # Referrer policy
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Remove server signature
+    Header unset Server
+    Header unset X-Powered-By
+</IfModule>
+
+# PHP settings
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 20M
+    php_value post_max_size 20M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_value memory_limit 256M
+</IfModule>
+
+# Compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Browser caching
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType text/javascript "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/jpg "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+</IfModule>
+
+# Character encoding
+AddDefaultCharset UTF-8
+
+# Error documents
+ErrorDocument 403 "Access Forbidden - N8N Installer"
+ErrorDocument 404 "Page Not Found - N8N Installer"
+ErrorDocument 500 "Internal Server Error - N8N Installer"
