@@ -1,0 +1,53 @@
+# N8N Web Installer - Git Ignore
+# Xman Enterprise co.,ltd.
+
+# Logs
+*.log
+installer.log
+error.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Session files
+sessions/
+tmp/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# Backup files
+*.bak
+*.backup
+*.old
+*~
+
+# Installation artifacts
+n8n/
+backups/
+logs/
+
+# Cache
+cache/
+*.cache
+
+# Temporary files
+temp/
+tmp/
