@@ -1,12 +1,31 @@
 <?php
-require_once 'config.php';
+// Enable error logging
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/error.log');
+
+// Try to load config
+try {
+    if (!defined('N8N_INSTALLER')) {
+        define('N8N_INSTALLER', true);
+    }
+
+    if (!file_exists(__DIR__ . '/config.php')) {
+        http_response_code(500);
+        die(json_encode(['success' => false, 'message' => 'config.php not found']));
+    }
+
+    require_once __DIR__ . '/config.php';
+} catch (Exception $e) {
+    http_response_code(500);
+    die(json_encode(['success' => false, 'message' => 'Config error: ' . $e->getMessage()]));
+}
 
 // Disable all output buffering and error display
 while (ob_get_level()) {
     ob_end_clean();
 }
 ini_set('display_errors', 0);
-error_reporting(0);
+error_reporting(E_ALL);
 
 // Set JSON header
 header('Content-Type: application/json');
@@ -15,6 +34,11 @@ header('Content-Type: application/json');
 $action = $_POST['action'] ?? '';
 
 try {
+    // Validate action
+    if (empty($action)) {
+        throw new Exception('No action specified');
+    }
+
     // Handle actions
     switch ($action) {
         case 'check_requirements':
@@ -30,10 +54,18 @@ try {
             break;
 
         default:
-            echo json_encode(['success' => false, 'message' => 'Invalid action']);
+            throw new Exception('Invalid action: ' . $action);
     }
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    error_log('Install.php error: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+    exit;
+} catch (Error $e) {
+    error_log('Install.php fatal error: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Fatal error: ' . $e->getMessage()]);
+    exit;
 }
 
 // Check system requirements
