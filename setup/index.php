@@ -1,6 +1,29 @@
 <?php
 require_once 'config.php';
 
+// Check if exec() is available
+if (!function_exists('exec')) {
+    // Redirect to manual installation page
+    header('Location: manual-install.php');
+    exit;
+}
+
+// Test if exec() actually works
+$exec_test = [];
+$exec_works = false;
+try {
+    @exec('echo "test" 2>&1', $exec_test, $return_var);
+    $exec_works = ($return_var === 0);
+} catch (Exception $e) {
+    $exec_works = false;
+}
+
+if (!$exec_works) {
+    // Redirect to manual installation page
+    header('Location: manual-install.php');
+    exit;
+}
+
 // Handle language change
 if (isset($_GET['lang']) && in_array($_GET['lang'], ['th', 'en'])) {
     $_SESSION['lang'] = $_GET['lang'];
