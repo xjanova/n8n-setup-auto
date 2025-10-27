@@ -218,9 +218,17 @@
 
     // Encode the creation function to prevent easy modification
     const init = function() {
+        console.log('🛡️ watermark.js: Initializing...');
+        console.log('Document readyState:', document.readyState);
+
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', createFooter);
+            console.log('🛡️ watermark.js: Waiting for DOMContentLoaded');
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('🛡️ watermark.js: DOMContentLoaded fired, creating footer');
+                createFooter();
+            });
         } else {
+            console.log('🛡️ watermark.js: DOM already loaded, creating footer immediately');
             createFooter();
         }
 
@@ -238,6 +246,7 @@
     };
 
     // Execute initialization
+    console.log('🛡️ watermark.js: Loaded, executing init()');
     init();
 
     // Prevent this script from being modified

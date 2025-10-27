@@ -6,60 +6,89 @@
 
 class N8NInstaller {
     constructor() {
+        console.log('🚀 N8NInstaller constructor called');
         this.currentStep = 1;
         this.totalSteps = 6;
         this.tips = [];
-        this.init();
+        try {
+            this.init();
+            console.log('✅ N8NInstaller initialized successfully');
+        } catch (error) {
+            console.error('❌ Error during initialization:', error);
+        }
     }
 
     init() {
+        console.log('🔧 Initializing N8NInstaller...');
         this.setupLanguageSelector();
         this.setupEventListeners();
         this.showRandomTip();
         this.updateProgressLine();
+        console.log('✅ Init complete');
     }
 
     setupLanguageSelector() {
+        console.log('🌐 Setting up language selector...');
         const langSelector = document.getElementById('language');
         if (langSelector) {
+            console.log('✅ Language selector found:', langSelector);
             langSelector.addEventListener('change', (e) => {
+                console.log('🔄 Language change triggered:', e.target.value);
                 this.changeLanguage(e.target.value);
             });
+        } else {
+            console.warn('⚠️ Language selector not found');
         }
     }
 
     setupEventListeners() {
+        console.log('🎯 Setting up event listeners...');
+
         // Next button
-        document.querySelectorAll('.btn-next').forEach(btn => {
-            btn.addEventListener('click', () => this.nextStep());
+        const nextButtons = document.querySelectorAll('.btn-next');
+        console.log('Next buttons found:', nextButtons.length);
+        nextButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                console.log('▶️ Next button clicked');
+                this.nextStep();
+            });
         });
 
         // Back button
-        document.querySelectorAll('.btn-back').forEach(btn => {
-            btn.addEventListener('click', () => this.prevStep());
+        const backButtons = document.querySelectorAll('.btn-back');
+        console.log('Back buttons found:', backButtons.length);
+        backButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                console.log('◀️ Back button clicked');
+                this.prevStep();
+            });
         });
 
         // Test database connection
         const testDbBtn = document.getElementById('test-db');
         if (testDbBtn) {
+            console.log('✅ Test DB button found');
             testDbBtn.addEventListener('click', () => this.testDatabaseConnection());
         }
 
         // Generate encryption key
         const genKeyBtn = document.getElementById('generate-key');
         if (genKeyBtn) {
+            console.log('✅ Generate key button found');
             genKeyBtn.addEventListener('click', () => this.generateEncryptionKey());
         }
 
         // Install button
         const installBtn = document.getElementById('install-btn');
         if (installBtn) {
+            console.log('✅ Install button found');
             installBtn.addEventListener('click', () => this.startInstallation());
         }
 
         // Finish button
         const finishBtn = document.getElementById('finish-btn');
         if (finishBtn) {
+            console.log('✅ Finish button found');
             finishBtn.addEventListener('click', () => this.finishInstallation());
         }
     }
@@ -563,15 +592,26 @@ class N8NInstaller {
 }
 
 // Initialize installer when DOM is ready
+console.log('📄 installer.js loaded');
 document.addEventListener('DOMContentLoaded', () => {
-    window.installer = new N8NInstaller();
+    console.log('🎬 DOMContentLoaded event fired');
+    try {
+        window.installer = new N8NInstaller();
+        console.log('✅ Installer instance created and assigned to window.installer');
+    } catch (error) {
+        console.error('❌ Failed to create installer instance:', error);
+    }
 });
 
 // Auto-check requirements on page load
 window.addEventListener('load', () => {
+    console.log('🌍 Window load event fired');
     const requirementsCheck = document.getElementById('requirements-check');
     if (requirementsCheck) {
+        console.log('✅ Requirements check element found, running check...');
         checkRequirements();
+    } else {
+        console.log('ℹ️ Requirements check element not found (probably not on step 2)');
     }
 });
 
