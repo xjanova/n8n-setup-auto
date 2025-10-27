@@ -1,25 +1,24 @@
 <?php
 require_once 'config.php';
 
-// Check if exec() is available
-if (!function_exists('exec')) {
-    // Redirect to manual installation page
-    header('Location: manual-install.php');
-    exit;
+// Check if any shell execution function is available
+$shell_available = false;
+
+// Check for proc_open (best option - supports real-time output)
+if (function_exists('proc_open')) {
+    $shell_available = true;
+}
+// Check for shell_exec
+elseif (function_exists('shell_exec')) {
+    $shell_available = true;
+}
+// Check for passthru
+elseif (function_exists('passthru')) {
+    $shell_available = true;
 }
 
-// Test if exec() actually works
-$exec_test = [];
-$exec_works = false;
-try {
-    @exec('echo "test" 2>&1', $exec_test, $return_var);
-    $exec_works = ($return_var === 0);
-} catch (Exception $e) {
-    $exec_works = false;
-}
-
-if (!$exec_works) {
-    // Redirect to manual installation page
+// If no shell function available, redirect to manual installation
+if (!$shell_available) {
     header('Location: manual-install.php');
     exit;
 }
