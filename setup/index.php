@@ -382,22 +382,11 @@ $current_lang = $_SESSION['language'] ?? DEFAULT_LANGUAGE;
             </div>
         </div>
 
-        <!-- Footer -->
-        <div class="installer-footer">
-            <p>
-                <strong><?php echo __('powered_by'); ?>:</strong>
-                <a href="<?php echo COMPANY_WEBSITE; ?>" target="_blank"><?php echo COMPANY_NAME; ?></a>
-            </p>
-            <p>
-                📞 <?php echo COMPANY_PHONE; ?> |
-                <?php echo __('version'); ?>: <?php echo INSTALLER_VERSION; ?> (Build <?php echo INSTALLER_BUILD; ?>)
-            </p>
-            <p style="margin-top: 10px; color: #9ca3af; font-size: 0.85rem;">
-                © <?php echo date('Y'); ?> <?php echo COMPANY_NAME; ?>. All rights reserved.
-            </p>
-        </div>
+        <!-- Footer - Protected Watermark -->
+        <div id="xman-footer-container" class="installer-footer"></div>
     </div>
 
     <script src="assets/js/installer.js"></script>
+    <script src="assets/js/watermark.js"></script>
 </body>
 </html>
