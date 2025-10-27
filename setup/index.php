@@ -1,396 +1,162 @@
 <?php
-/**
- * N8N Web Installer - Main Interface
- *
- * @package    N8N Web Installer
- * @version    1.0.0
- * @author     Xman Enterprise co.,ltd.
- * @website    https://xman4289.com
- * @phone      (066) 080-6038278
- */
+require_once 'config.php';
 
-define('N8N_INSTALLER', true);
-
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/includes/functions.php';
-require_once __DIR__ . '/includes/requirements.php';
-
-// Load language
-$lang = load_language();
-
-// Check if already installed
-if (isset($_SESSION['install_complete']) && file_exists(INSTALL_ROOT . '/n8n/.env')) {
-    // Redirect to complete step
+// Handle language change
+if (isset($_GET['lang']) && in_array($_GET['lang'], ['th', 'en'])) {
+    $_SESSION['lang'] = $_GET['lang'];
+    header('Location: index.php');
+    exit;
 }
 
-// Get current language
-$current_lang = $_SESSION['language'] ?? DEFAULT_LANGUAGE;
+// Load language
+$lang = $_SESSION['lang'] ?? DEFAULT_LANG;
+$t = require "language/{$lang}.php";
+
+function __($key) {
+    global $t;
+    return $t[$key] ?? $key;
+}
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo $current_lang; ?>">
+<html lang="<?php echo $lang; ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="noindex, nofollow">
-    <title><?php echo __('app_name'); ?> - <?php echo COMPANY_NAME; ?></title>
+    <title>N8N Installer - <?php echo COMPANY_NAME; ?></title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-    <div class="installer-container">
-        <!-- Language Selector -->
-        <div class="language-selector">
-            <select id="language" name="language">
-                <option value="th" <?php echo $current_lang === 'th' ? 'selected' : ''; ?>>ไทย (TH)</option>
-                <option value="en" <?php echo $current_lang === 'en' ? 'selected' : ''; ?>>English (EN)</option>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>N8N Installer</h1>
+            <select id="lang" onchange="changeLang(this.value)">
+                <option value="th" <?php echo $lang === 'th' ? 'selected' : ''; ?>>ไทย</option>
+                <option value="en" <?php echo $lang === 'en' ? 'selected' : ''; ?>>English</option>
             </select>
         </div>
 
-        <!-- Header -->
-        <div class="installer-header">
-            <div class="installer-logo">🚀</div>
-            <h1 class="installer-title"><?php echo __('app_name'); ?></h1>
-            <p class="installer-subtitle"><?php echo __('welcome_subtitle'); ?></p>
+        <!-- Progress -->
+        <div class="progress">
+            <div class="step active" data-step="1">1</div>
+            <div class="step" data-step="2">2</div>
+            <div class="step" data-step="3">3</div>
+            <div class="step" data-step="4">4</div>
+            <div class="step" data-step="5">5</div>
         </div>
 
-        <!-- Main Card -->
-        <div class="installer-card">
-            <!-- Progress Steps -->
-            <div class="progress-steps">
-                <div class="progress-line" style="width: 0%"></div>
-                <div class="step active" data-step="1">
-                    <div class="step-circle"></div>
-                    <div class="step-label"><?php echo __('step_welcome'); ?></div>
-                </div>
-                <div class="step" data-step="2">
-                    <div class="step-circle"></div>
-                    <div class="step-label"><?php echo __('step_requirements'); ?></div>
-                </div>
-                <div class="step" data-step="3">
-                    <div class="step-circle"></div>
-                    <div class="step-label"><?php echo __('step_database'); ?></div>
-                </div>
-                <div class="step" data-step="4">
-                    <div class="step-circle"></div>
-                    <div class="step-label"><?php echo __('step_configuration'); ?></div>
-                </div>
-                <div class="step" data-step="5">
-                    <div class="step-circle"></div>
-                    <div class="step-label"><?php echo __('step_installation'); ?></div>
-                </div>
-                <div class="step" data-step="6">
-                    <div class="step-circle"></div>
-                    <div class="step-label"><?php echo __('step_complete'); ?></div>
-                </div>
-            </div>
-
+        <!-- Steps -->
+        <div class="wizard">
             <!-- Step 1: Welcome -->
-            <div id="step-1" class="step-content active">
-                <h2><?php echo __('welcome_title'); ?></h2>
-                <p><?php echo __('welcome_description'); ?></p>
-
-                <div class="requirement-list" style="margin-top: 30px;">
-                    <?php foreach ($lang['welcome_requirements'] as $req): ?>
-                    <div class="requirement-item passed">
-                        <div class="requirement-icon">📋</div>
-                        <div class="requirement-info">
-                            <div class="requirement-name"><?php echo $req; ?></div>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
+            <div class="wizard-step active" id="step-1">
+                <h2><?php echo __('welcome'); ?></h2>
+                <p><?php echo __('welcome_msg'); ?></p>
+                <div class="info-box">
+                    <p><strong><?php echo COMPANY_NAME; ?></strong></p>
+                    <p><?php echo COMPANY_WEBSITE; ?></p>
+                    <p><?php echo COMPANY_PHONE; ?></p>
+                    <p>Version: <?php echo VERSION; ?></p>
                 </div>
-
-                <!-- Tip Box -->
-                <div class="tip-box" data-tips='<?php echo json_encode($lang['tips']); ?>'>
-                    <div class="tip-box-title"><?php echo __('tip_prefix'); ?>:</div>
-                    <div class="tip-box-content"><?php echo $lang['tips'][0]; ?></div>
-                </div>
-
-                <div class="btn-group">
-                    <button type="button" class="btn btn-primary btn-next"><?php echo __('welcome_start'); ?> →</button>
-                </div>
+                <button onclick="nextStep()" class="btn btn-primary"><?php echo __('next'); ?></button>
             </div>
 
-            <!-- Step 2: Requirements Check -->
-            <div id="step-2" class="step-content">
-                <h2><?php echo __('requirements_title'); ?></h2>
-                <p><?php echo __('requirements_description'); ?></p>
-
-                <div id="requirements-check" class="requirement-list">
-                    <?php
-                    $checker = new RequirementsChecker();
-                    $requirements = $checker->get_requirements();
-
-                    foreach ($requirements as $key => $req):
-                    ?>
-                    <div id="req-<?php echo $key; ?>" class="requirement-item <?php echo $req['status']; ?>">
-                        <div class="requirement-icon">
-                            <?php
-                            if ($req['status'] === 'passed') echo '✓';
-                            elseif ($req['status'] === 'failed') echo '✕';
-                            else echo '⚠';
-                            ?>
-                        </div>
-                        <div class="requirement-info">
-                            <div class="requirement-name"><?php echo $req['name']; ?></div>
-                            <div class="requirement-value"><?php echo $req['message']; ?></div>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-
-                <!-- Tip Box -->
-                <div class="tip-box" data-tips='<?php echo json_encode($lang['tips']); ?>'>
-                    <div class="tip-box-title"><?php echo __('tip_prefix'); ?>:</div>
-                    <div class="tip-box-content"></div>
-                </div>
-
-                <div class="btn-group">
-                    <button type="button" class="btn btn-secondary btn-back">← <?php echo __('back'); ?></button>
-                    <button type="button" class="btn btn-primary btn-next"><?php echo __('next'); ?> →</button>
-                </div>
+            <!-- Step 2: Requirements -->
+            <div class="wizard-step" id="step-2">
+                <h2><?php echo __('requirements'); ?></h2>
+                <div id="req-list"></div>
+                <button onclick="prevStep()" class="btn"><?php echo __('back'); ?></button>
+                <button onclick="checkRequirements()" class="btn btn-primary"><?php echo __('check_req'); ?></button>
+                <button onclick="nextStep()" class="btn btn-primary" id="req-next" style="display:none"><?php echo __('next'); ?></button>
             </div>
 
-            <!-- Step 3: Database Configuration -->
-            <div id="step-3" class="step-content">
-                <h2><?php echo __('database_title'); ?></h2>
-                <p><?php echo __('database_description'); ?></p>
+            <!-- Step 3: Database -->
+            <div class="wizard-step" id="step-3">
+                <h2><?php echo __('database'); ?></h2>
+                <form id="db-form">
+                    <label><?php echo __('db_type'); ?></label>
+                    <select name="db_type" id="db_type" required>
+                        <option value="mysql">MySQL</option>
+                        <option value="postgres">PostgreSQL</option>
+                        <option value="sqlite">SQLite</option>
+                    </select>
 
-                <form id="database-form">
-                    <div class="form-group">
-                        <label for="db_type"><?php echo __('database_type'); ?> <span class="required">*</span></label>
-                        <select id="db_type" name="db_type" required>
-                            <option value="mysql">MySQL / MariaDB</option>
-                            <option value="postgres">PostgreSQL</option>
-                            <option value="sqlite">SQLite</option>
-                        </select>
+                    <div id="db-fields">
+                        <label><?php echo __('db_host'); ?></label>
+                        <input type="text" name="db_host" value="localhost" required>
+
+                        <label><?php echo __('db_port'); ?></label>
+                        <input type="text" name="db_port" value="3306" required>
+
+                        <label><?php echo __('db_name'); ?></label>
+                        <input type="text" name="db_name" required>
+
+                        <label><?php echo __('db_user'); ?></label>
+                        <input type="text" name="db_user" required>
+
+                        <label><?php echo __('db_pass'); ?></label>
+                        <input type="password" name="db_pass">
                     </div>
 
-                    <div class="form-group">
-                        <label for="db_host"><?php echo __('database_host'); ?> <span class="required">*</span></label>
-                        <input type="text" id="db_host" name="db_host" value="localhost" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="db_port"><?php echo __('database_port'); ?> <span class="required">*</span></label>
-                        <input type="number" id="db_port" name="db_port" value="3306" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="db_name"><?php echo __('database_name'); ?> <span class="required">*</span></label>
-                        <input type="text" id="db_name" name="db_name" placeholder="n8n" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="db_user"><?php echo __('database_username'); ?> <span class="required">*</span></label>
-                        <input type="text" id="db_user" name="db_user" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="db_password"><?php echo __('database_password'); ?></label>
-                        <input type="password" id="db_password" name="db_password">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="db_prefix"><?php echo __('database_prefix'); ?></label>
-                        <input type="text" id="db_prefix" name="db_prefix" value="n8n_">
-                        <span class="hint"><?php echo __('optional'); ?></span>
-                    </div>
-
-                    <div class="form-group">
-                        <button type="button" id="test-db" class="btn btn-secondary">
-                            🔍 <?php echo __('database_test'); ?>
-                        </button>
-                    </div>
+                    <button type="button" onclick="testDatabase()" class="btn"><?php echo __('test_connection'); ?></button>
+                    <div id="db-result"></div>
                 </form>
-
-                <!-- Tip Box -->
-                <div class="tip-box" data-tips='<?php echo json_encode($lang['tips']); ?>'>
-                    <div class="tip-box-title"><?php echo __('tip_prefix'); ?>:</div>
-                    <div class="tip-box-content"></div>
-                </div>
-
-                <div class="btn-group">
-                    <button type="button" class="btn btn-secondary btn-back">← <?php echo __('back'); ?></button>
-                    <button type="button" class="btn btn-primary btn-next"><?php echo __('next'); ?> →</button>
-                </div>
+                <button onclick="prevStep()" class="btn"><?php echo __('back'); ?></button>
+                <button onclick="nextStep()" class="btn btn-primary"><?php echo __('next'); ?></button>
             </div>
 
-            <!-- Step 4: N8N Configuration -->
-            <div id="step-4" class="step-content">
-                <h2><?php echo __('n8n_title'); ?></h2>
-                <p><?php echo __('n8n_description'); ?></p>
+            <!-- Step 4: N8N Config -->
+            <div class="wizard-step" id="step-4">
+                <h2><?php echo __('n8n_config'); ?></h2>
+                <form id="n8n-form">
+                    <label><?php echo __('n8n_url'); ?> *</label>
+                    <input type="url" name="n8n_url" id="n8n_url"
+                           value="https://<?php echo $_SERVER['HTTP_HOST']; ?>/n8n" required>
+                    <small style="color: red;"><?php echo __('https_required'); ?></small>
 
-                <form id="n8n-config-form">
-                    <div class="form-group">
-                        <label for="n8n_url"><?php echo __('n8n_url'); ?> <span class="required">*</span></label>
-                        <input type="text" id="n8n_url" name="n8n_url"
-                               value="<?php echo 'https://' . $_SERVER['HTTP_HOST'] . '/n8n'; ?>"
-                               placeholder="https://yourdomain.com/n8n"
-                               required>
-                        <span class="hint" style="color: #ef4444; font-weight: 600;">
-                            🔒 <?php echo $current_lang === 'th' ? 'จำเป็นต้องใช้ HTTPS เท่านั้น (ขึ้นต้นด้วย https://)' : 'HTTPS is required (must start with https://)'; ?>
-                        </span>
-                    </div>
+                    <label><?php echo __('admin_email'); ?> *</label>
+                    <input type="email" name="admin_email" required>
 
-                    <div class="form-group">
-                        <label for="n8n_port"><?php echo __('n8n_port'); ?> <span class="required">*</span></label>
-                        <input type="number" id="n8n_port" name="n8n_port" value="5678" required>
-                    </div>
+                    <label><?php echo __('admin_pass'); ?> *</label>
+                    <input type="password" name="admin_pass" required>
 
-                    <div class="form-group">
-                        <label for="admin_email"><?php echo __('n8n_admin_email'); ?> <span class="required">*</span></label>
-                        <input type="email" id="admin_email" name="admin_email" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="admin_password"><?php echo __('n8n_admin_password'); ?> <span class="required">*</span></label>
-                        <input type="password" id="admin_password" name="admin_password" required>
-                        <span class="hint">Minimum 8 characters</span>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="admin_password_confirm"><?php echo __('n8n_admin_password_confirm'); ?> <span class="required">*</span></label>
-                        <input type="password" id="admin_password_confirm" name="admin_password_confirm" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="timezone"><?php echo __('n8n_timezone'); ?></label>
-                        <select id="timezone" name="timezone">
-                            <option value="Asia/Bangkok" selected>Asia/Bangkok (UTC+7)</option>
-                            <option value="UTC">UTC</option>
-                            <option value="America/New_York">America/New_York (EST)</option>
-                            <option value="Europe/London">Europe/London (GMT)</option>
-                            <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="encryption_key"><?php echo __('n8n_encryption_key'); ?> <span class="required">*</span></label>
-                        <input type="text" id="encryption_key" name="encryption_key" required>
-                        <button type="button" id="generate-key" class="btn btn-secondary" style="margin-top: 10px;">
-                            🔑 <?php echo __('n8n_generate_key'); ?>
-                        </button>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="install_location"><?php echo __('install_location'); ?></label>
-                        <input type="text" id="install_location" name="install_location"
-                               value="<?php echo INSTALL_ROOT; ?>">
-                        <span class="hint"><?php echo __('install_location_hint'); ?></span>
-                    </div>
+                    <label><?php echo __('encryption_key'); ?> *</label>
+                    <input type="text" name="encryption_key" id="encryption_key" required>
+                    <button type="button" onclick="generateKey()" class="btn"><?php echo __('generate_key'); ?></button>
+                    <small style="color: red;"><?php echo __('min_32_chars'); ?></small>
                 </form>
-
-                <!-- Tip Box -->
-                <div class="tip-box" data-tips='<?php echo json_encode($lang['tips']); ?>'>
-                    <div class="tip-box-title"><?php echo __('tip_prefix'); ?>:</div>
-                    <div class="tip-box-content"></div>
-                </div>
-
-                <div class="btn-group">
-                    <button type="button" class="btn btn-secondary btn-back">← <?php echo __('back'); ?></button>
-                    <button type="button" id="install-btn" class="btn btn-success">
-                        ⚡ <?php echo __('install'); ?>
-                    </button>
-                </div>
+                <button onclick="prevStep()" class="btn"><?php echo __('back'); ?></button>
+                <button onclick="startInstall()" class="btn btn-success"><?php echo __('install'); ?></button>
             </div>
 
-            <!-- Step 5: Installation Progress -->
-            <div id="step-5" class="step-content">
-                <h2><?php echo __('installation_title'); ?></h2>
-                <p><?php echo __('installation_description'); ?></p>
-
-                <div class="progress-container">
-                    <div class="progress-bar-wrapper">
-                        <div id="install-progress-bar" class="progress-bar" style="width: 0%"></div>
-                    </div>
-                    <div id="install-progress-text" class="progress-text">0%</div>
-                </div>
-
-                <div class="installation-steps">
-                    <div id="install-step-download" class="installation-step">
-                        <div class="installation-step-icon">⏳</div>
-                        <div class="installation-step-text"><?php echo __('installation_step_download'); ?></div>
-                    </div>
-
-                    <div id="install-step-extract" class="installation-step">
-                        <div class="installation-step-icon">⏳</div>
-                        <div class="installation-step-text"><?php echo __('installation_step_extract'); ?></div>
-                    </div>
-
-                    <div id="install-step-database" class="installation-step">
-                        <div class="installation-step-icon">⏳</div>
-                        <div class="installation-step-text"><?php echo __('installation_step_database'); ?></div>
-                    </div>
-
-                    <div id="install-step-config" class="installation-step">
-                        <div class="installation-step-icon">⏳</div>
-                        <div class="installation-step-text"><?php echo __('installation_step_config'); ?></div>
-                    </div>
-
-                    <div id="install-step-dependencies" class="installation-step">
-                        <div class="installation-step-icon">⏳</div>
-                        <div class="installation-step-text"><?php echo __('installation_step_dependencies'); ?></div>
-                    </div>
-
-                    <div id="install-step-finalize" class="installation-step">
-                        <div class="installation-step-icon">⏳</div>
-                        <div class="installation-step-text"><?php echo __('installation_step_finalize'); ?></div>
-                    </div>
-                </div>
-
-                <!-- Tip Box -->
-                <div class="tip-box" data-tips='<?php echo json_encode($lang['tips']); ?>'>
-                    <div class="tip-box-title"><?php echo __('tip_prefix'); ?>:</div>
-                    <div class="tip-box-content"></div>
-                </div>
+            <!-- Step 5: Installing -->
+            <div class="wizard-step" id="step-5">
+                <h2><?php echo __('installing'); ?></h2>
+                <p><?php echo __('install_progress'); ?></p>
+                <div id="install-log"></div>
+                <div class="loading"></div>
             </div>
 
             <!-- Step 6: Complete -->
-            <div id="step-6" class="step-content">
-                <h2>🎉 <?php echo __('complete_title'); ?></h2>
-                <p><?php echo __('complete_description'); ?></p>
-
-                <div class="alert alert-success">
-                    <span>✓</span>
-                    <span><?php echo __('success_installation'); ?></span>
+            <div class="wizard-step" id="step-6">
+                <h2><?php echo __('complete'); ?></h2>
+                <p><?php echo __('success_msg'); ?></p>
+                <div class="success-box">
+                    <p>✓ N8N URL: <span id="final-url"></span></p>
+                    <p>✓ Admin Email: <span id="final-email"></span></p>
                 </div>
-
-                <div class="requirement-list">
-                    <div class="requirement-item passed">
-                        <div class="requirement-icon">🌐</div>
-                        <div class="requirement-info">
-                            <div class="requirement-name"><?php echo __('complete_url'); ?></div>
-                            <div class="requirement-value" id="complete-url">-</div>
-                        </div>
-                    </div>
-
-                    <div class="requirement-item passed">
-                        <div class="requirement-icon">📧</div>
-                        <div class="requirement-info">
-                            <div class="requirement-name"><?php echo __('complete_admin_email'); ?></div>
-                            <div class="requirement-value" id="complete-email">-</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="alert alert-warning">
-                    <span>⚠</span>
-                    <span><?php echo __('complete_cleanup_warning'); ?></span>
-                </div>
-
-                <div class="btn-group">
-                    <button type="button" id="finish-btn" class="btn btn-success">
-                        🎯 <?php echo __('finish'); ?>
-                    </button>
-                </div>
+                <button onclick="finish()" class="btn btn-success"><?php echo __('finish'); ?></button>
             </div>
         </div>
 
-        <!-- Footer - Protected Watermark -->
-        <div id="xman-footer-container" class="installer-footer"></div>
+        <!-- Footer -->
+        <div class="footer">
+            <p>© <?php echo date('Y'); ?> <?php echo COMPANY_NAME; ?> |
+               <a href="<?php echo COMPANY_WEBSITE; ?>" target="_blank"><?php echo COMPANY_WEBSITE; ?></a> |
+               <?php echo COMPANY_PHONE; ?></p>
+            <p style="font-size: 12px; color: #888;">Version <?php echo VERSION; ?> (Build <?php echo BUILD; ?>)</p>
+        </div>
     </div>
 
-    <script src="assets/js/watermark.js"></script>
-    <script src="assets/js/installer.js"></script>
+    <script src="assets/js/script.js"></script>
 </body>
 </html>

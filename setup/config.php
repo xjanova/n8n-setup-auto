@@ -1,94 +1,36 @@
 <?php
 /**
- * N8N Web Installer Configuration
- *
- * @package    N8N Web Installer
- * @version    1.0.0
- * @author     Xman Enterprise co.,ltd.
- * @website    https://xman4289.com
- * @phone      (066) 080-6038278
- * @license    Proprietary
+ * N8N Installer Configuration
+ * Xman Enterprise co.,ltd.
  */
 
-// Prevent direct access
-if (!defined('N8N_INSTALLER')) {
-    die('Direct access not permitted');
-}
+// Security
+define('N8N_INSTALLER', true);
 
-// Installer Version
-define('INSTALLER_VERSION', '1.0.0');
-define('INSTALLER_BUILD', '20250127');
+// Version
+define('VERSION', '1.0.0');
+define('BUILD', '20250127');
 
-// Company Information - PROTECTED (DO NOT MODIFY)
-// These constants are protected by integrity verification system
+// Company Info
 define('COMPANY_NAME', 'Xman Enterprise co.,ltd.');
 define('COMPANY_WEBSITE', 'https://xman4289.com');
 define('COMPANY_PHONE', '(066) 080-6038278');
 
-// License verification checksum
-define('LICENSE_HASH', md5(COMPANY_NAME . COMPANY_WEBSITE . COMPANY_PHONE));
-
-// Verify license integrity
-function verify_license_integrity() {
-    $expected = md5('Xman Enterprise co.,ltd.https://xman4289.com(066) 080-6038278');
-    $current = md5(COMPANY_NAME . COMPANY_WEBSITE . COMPANY_PHONE);
-
-    if ($expected !== $current) {
-        die('<h1>License Violation Detected</h1><p>The software license has been tampered with. Please contact Xman Enterprise co.,ltd. at (066) 080-6038278 or visit https://xman4289.com</p>');
-    }
-
-    return true;
-}
-
-// Auto-verify on load
-verify_license_integrity();
-
-// Installation Settings
-define('INSTALL_ROOT', dirname(__DIR__)); // Parent directory of setup folder
+// Paths
 define('SETUP_DIR', __DIR__);
-define('DEFAULT_LANGUAGE', 'th');
+define('INSTALL_ROOT', dirname(__DIR__));
 
-// N8N Settings
-define('N8N_VERSION', 'latest');
-define('N8N_GITHUB_REPO', 'https://api.github.com/repos/n8n-io/n8n/releases/latest');
-define('N8N_REQUIRED_PHP_VERSION', '7.4.0');
-define('N8N_REQUIRED_NODE_VERSION', '18.0.0');
+// Language
+define('DEFAULT_LANG', 'th');
 
-// Session Settings
-define('SESSION_NAME', 'n8n_installer_session');
-define('SESSION_LIFETIME', 3600); // 1 hour
+// Session
+session_start();
 
-// Security
-define('CSRF_TOKEN_NAME', 'n8n_csrf_token');
-
-// Database Types
-$db_types = [
-    'mysql' => 'MySQL / MariaDB',
-    'postgres' => 'PostgreSQL',
-    'sqlite' => 'SQLite'
-];
-
-// Timezone
-date_default_timezone_set('Asia/Bangkok');
-
-// Error Reporting (disable in production)
-error_reporting(E_ALL);
-ini_set('display_errors', 0);
-ini_set('log_errors', 1);
-ini_set('error_log', SETUP_DIR . '/error.log');
-
-// Start session
-if (session_status() === PHP_SESSION_NONE) {
-    session_name(SESSION_NAME);
-    session_start();
+if (!isset($_SESSION['lang'])) {
+    $_SESSION['lang'] = DEFAULT_LANG;
 }
 
-// Initialize CSRF token
+// CSRF Token
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
-// Set default language
-if (!isset($_SESSION['language'])) {
-    $_SESSION['language'] = DEFAULT_LANGUAGE;
 }
