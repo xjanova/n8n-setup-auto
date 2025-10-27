@@ -18,6 +18,7 @@ class RequirementsChecker {
      * Check all requirements
      */
     public function check_all() {
+        $this->check_https_protocol();
         $this->check_php_version();
         $this->check_php_extensions();
         $this->check_node_version();
@@ -26,6 +27,33 @@ class RequirementsChecker {
         $this->check_disk_space();
         $this->check_memory_limit();
         $this->check_execution_time();
+    }
+
+    /**
+     * Check HTTPS protocol
+     */
+    private function check_https_protocol() {
+        $is_https = (
+            (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+            (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
+            (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on') ||
+            (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)
+        );
+
+        $protocol = $is_https ? 'HTTPS' : 'HTTP';
+        $status = $is_https ? 'passed' : 'failed';
+
+        $message = $is_https
+            ? 'Secure HTTPS connection detected'
+            : 'HTTPS is required for N8N installation. Please enable SSL/TLS certificate.';
+
+        $this->requirements['https_protocol'] = [
+            'name' => 'HTTPS Protocol',
+            'required' => 'HTTPS',
+            'current' => $protocol,
+            'status' => $status,
+            'message' => $message
+        ];
     }
 
     /**

@@ -223,6 +223,18 @@ class N8NInstaller {
             return false;
         }
 
+        // Validate HTTPS protocol
+        try {
+            const url = new URL(n8nUrl);
+            if (url.protocol !== 'https:') {
+                this.showAlert('error', '🔒 HTTPS is required! N8N must be accessed via HTTPS for security. Please use https:// instead of http://');
+                return false;
+            }
+        } catch (e) {
+            this.showAlert('error', 'Invalid URL format. Please enter a valid URL starting with https://');
+            return false;
+        }
+
         if (adminPassword !== confirmPassword) {
             this.showAlert('error', 'Passwords do not match.');
             return false;

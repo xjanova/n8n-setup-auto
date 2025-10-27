@@ -140,6 +140,8 @@ return [
     'error_node_not_found' => 'Node.js not found. Please install Node.js first',
     'error_npm_not_found' => 'NPM not found. Please install NPM first',
     'error_csrf' => 'Invalid CSRF token',
+    'error_https_required' => '🔒 HTTPS is required! N8N must be accessed via HTTPS for security. Please use https:// instead of http://',
+    'error_https_protocol' => 'HTTPS protocol is required for N8N URL. Please use https:// instead of http://',
 
     // Success Messages
     'success_general' => 'Success!',

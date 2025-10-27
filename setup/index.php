@@ -224,8 +224,12 @@ $current_lang = $_SESSION['language'] ?? DEFAULT_LANGUAGE;
                     <div class="form-group">
                         <label for="n8n_url"><?php echo __('n8n_url'); ?> <span class="required">*</span></label>
                         <input type="text" id="n8n_url" name="n8n_url"
-                               value="<?php echo get_base_url() . '/../n8n'; ?>" required>
-                        <span class="hint"><?php echo __('n8n_url'); ?></span>
+                               value="<?php echo 'https://' . $_SERVER['HTTP_HOST'] . '/n8n'; ?>"
+                               placeholder="https://yourdomain.com/n8n"
+                               required>
+                        <span class="hint" style="color: #ef4444; font-weight: 600;">
+                            🔒 <?php echo $current_lang === 'th' ? 'จำเป็นต้องใช้ HTTPS เท่านั้น (ขึ้นต้นด้วย https://)' : 'HTTPS is required (must start with https://)'; ?>
+                        </span>
                     </div>
 
                     <div class="form-group">
