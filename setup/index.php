@@ -390,7 +390,7 @@ $current_lang = $_SESSION['language'] ?? DEFAULT_LANGUAGE;
         <div id="xman-footer-container" class="installer-footer"></div>
     </div>
 
-    <script src="assets/js/installer.js"></script>
     <script src="assets/js/watermark.js"></script>
+    <script src="assets/js/installer.js"></script>
 </body>
 </html>
